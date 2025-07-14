@@ -1,19 +1,45 @@
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+
+const hud = document.getElementById('hud');
+const buyWeapon1Btn = document.getElementById('buyWeapon1');
+const buyWeapon2Btn = document.getElementById('buyWeapon2');
+
+const WIDTH = canvas.width;
+const HEIGHT = canvas.height;
+
 class Player {
   constructor(){
-    // ... reszta pól
-    this.weaponLevel = 1;  // poziom broni
+    this.size = 30;
+    this.x = WIDTH/2;
+    this.y = HEIGHT/2;
+    this.speed = 5;
+    this.color = '#FFD700'; // złoty
+    this.health = 100;
+    this.bullets = [];
+    this.shootCooldown = 0;
+    this.score = 0; // monety
+    this.level = 1;
+    this.weaponLevel = 1; // poziom broni
+  }
+  draw(){
+    ctx.fillStyle = this.color;
+    ctx.fillRect(this.x - this.size/2, this.y - this.size/2, this.size, this.size);
+  }
+  move(keys){
+    if(keys['w'] && this.y - this.size/2 > 0) this.y -= this.speed;
+    if(keys['s'] && this.y + this.size/2 < HEIGHT) this.y += this.speed;
+    if(keys['a'] && this.x - this.size/2 > 0) this.x -= this.speed;
+    if(keys['d'] && this.x + this.size/2 < WIDTH) this.x += this.speed;
   }
   shoot(targetX, targetY){
     if(this.shootCooldown <= 0){
-      // W zależności od poziomu broni, różna ilość pocisków / prędkość
       if(this.weaponLevel === 1){
         this.bullets.push(new Bullet(this.x, this.y, targetX, targetY, 10));
       } else if(this.weaponLevel === 2){
-        // np. 2 pociski z lekkim rozrzutem
         this.bullets.push(new Bullet(this.x, this.y, targetX + 10, targetY, 12));
         this.bullets.push(new Bullet(this.x, this.y, targetX - 10, targetY, 12));
       } else if(this.weaponLevel >= 3){
-        // 3 pociski
         this.bullets.push(new Bullet(this.x, this.y, targetX, targetY, 15));
         this.bullets.push(new Bullet(this.x, this.y, targetX + 15, targetY + 5, 15));
         this.bullets.push(new Bullet(this.x, this.y, targetX - 15, targetY - 5, 15));
@@ -21,50 +47,55 @@ class Player {
       this.shootCooldown = 15;
     }
   }
-  // reszta metod bez zmian
+  update(){
+    if(this.shootCooldown > 0) this.shootCooldown--;
+    this.draw();
+    this.bullets.forEach((b, i) => {
+      b.update();
+      if(b.outOfBounds()) this.bullets.splice(i, 1);
+    });
+  }
 }
 
 class Bullet {
-  constructor(x,y,targetX,targetY){
+  constructor(x,y,targetX,targetY,speed=10){
     this.x = x;
     this.y = y;
-    this.radius = 5;
-    this.speed = 10;
+    this.size = 8;
+    this.speed = speed;
     const angle = Math.atan2(targetY - y, targetX - x);
-    this.dx = Math.cos(angle) * this.speed;
-    this.dy = Math.sin(angle) * this.speed;
+    this.dx = Math.cos(angle)*this.speed;
+    this.dy = Math.sin(angle)*this.speed;
     this.color = 'yellow';
   }
-  update() {
+  update(){
     this.x += this.dx;
     this.y += this.dy;
     this.draw();
   }
-  draw() {
+  draw(){
     ctx.fillStyle = this.color;
-    ctx.beginPath();
-    ctx.arc(this.x, this.y, this.radius, 0, Math.PI*2);
-    ctx.fill();
+    ctx.fillRect(this.x - this.size/2, this.y - this.size/2, this.size, this.size);
   }
-  outOfBounds() {
-    return this.x < 0 || this.x > canvas.width || this.y < 0 || this.y > canvas.height;
+  outOfBounds(){
+    return (this.x < 0 || this.x > WIDTH || this.y < 0 || this.y > HEIGHT);
   }
 }
 
 class Enemy {
-  constructor(x,y){
+  constructor(x,y,level=1, isBoss=false){
+    this.size = isBoss ? 60 : 25;
     this.x = x;
     this.y = y;
-    this.radius = 18;
-    this.color = 'red';
-    this.speed = 2;
-    this.health = 20;
+    this.speed = isBoss ? 1.5 : 2 + level*0.2;
+    this.color = isBoss ? '#FF4500' : '#FF6347'; // boss i zwykły
+    this.health = isBoss ? 100 + level*50 : 20 + level*10;
+    this.isBoss = isBoss;
+    this.level = level;
   }
   draw(){
     ctx.fillStyle = this.color;
-    ctx.beginPath();
-    ctx.arc(this.x,this.y,this.radius,0,Math.PI*2);
-    ctx.fill();
+    ctx.fillRect(this.x - this.size/2, this.y - this.size/2, this.size, this.size);
   }
   update(player){
     const angle = Math.atan2(player.y - this.y, player.x - this.x);
@@ -77,109 +108,82 @@ class Enemy {
 const player = new Player();
 const enemies = [];
 const keys = {};
-let mouseX=0, mouseY=0;
+let mouseX = 0;
+let mouseY = 0;
+let spawnTimer = 0;
+let bossActive = false;
 
-function spawnEnemy() {
-  const x = Math.random() < 0.5 ? 0 : canvas.width;
-  const y = Math.random() * canvas.height;
-  enemies.push(new Enemy(x,y));
+function spawnEnemy(level){
+  let x, y;
+  if(Math.random() < 0.5){
+    x = Math.random() < 0.5 ? 0 : WIDTH;
+    y = Math.random()*HEIGHT;
+  } else {
+    x = Math.random()*WIDTH;
+    y = Math.random() < 0.5 ? 0 : HEIGHT;
+  }
+  enemies.push(new Enemy(x,y,level));
 }
 
-setInterval(spawnEnemy, 2000);
+function spawnBoss(level){
+  let x = WIDTH/2;
+  let y = -80;
+  enemies.push(new Enemy(x,y,level,true));
+  bossActive = true;
+}
 
-window.addEventListener('keydown', e => { keys[e.key.toLowerCase()] = true; });
-window.addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
-
-window.addEventListener('mousemove', e => {
-  mouseX = e.clientX;
-  mouseY = e.clientY;
-});
-
-window.addEventListener('click', () => {
-  player.shoot(mouseX, mouseY);
-});
+function updateHUD(){
+  hud.innerHTML = `HP: ${player.health} &nbsp;&nbsp; Monety: ${player.score} &nbsp;&nbsp; Level: ${player.level} &nbsp;&nbsp; Broń: ${player.weaponLevel}`;
+}
 
 function checkCollisions(){
-  enemies.forEach((enemy, i) => {
-    // Bullets hit enemy
-    player.bullets.forEach((bullet,j) => {
-      const dx = enemy.x - bullet.x;
-      const dy = enemy.y - bullet.y;
-      const dist = Math.sqrt(dx*dx + dy*dy);
-      if(dist < enemy.radius + bullet.radius){
+  enemies.forEach((enemy, ei) => {
+    player.bullets.forEach((bullet, bi) => {
+      if(collidesRect(enemy.x, enemy.y, enemy.size, enemy.size, bullet.x, bullet.y, bullet.size, bullet.size)){
         enemy.health -= 10;
-        player.bullets.splice(j,1);
+        player.bullets.splice(bi,1);
         if(enemy.health <= 0){
-          enemies.splice(i,1);
+          if(enemy.isBoss) bossActive = false;
+          enemies.splice(ei,1);
+          player.score += enemy.isBoss ? 50 : 10;
         }
       }
     });
-    // Enemy hits player
-    const dxp = enemy.x - player.x;
-    const dyp = enemy.y - player.y;
-    const distp = Math.sqrt(dxp*dxp + dyp*dyp);
-    if(distp < enemy.radius + player.radius){
+    if(collidesRect(enemy.x, enemy.y, enemy.size, enemy.size, player.x, player.y, player.size, player.size)){
       player.health -= 1;
       if(player.health <= 0){
-        alert('Game Over!');
+        alert(`Game Over! Twoje monety: ${player.score}, dotarłeś do levelu ${player.level}`);
         window.location.reload();
       }
     }
   });
 }
 
+function collidesRect(x1,y1,w1,h1,x2,y2,w2,h2){
+  return !(x2 > x1 + w1 ||
+           x2 + w2 < x1 ||
+           y2 > y1 + h1 ||
+           y2 + h2 < y1);
+}
+
 function gameLoop(){
-  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.clearRect(0, 0, WIDTH, HEIGHT);
+
   player.move(keys);
   player.update();
-  enemies.forEach(e => e.update(player));
+
+  enemies.forEach(enemy => enemy.update(player));
+
   checkCollisions();
 
-  // Draw HUD
-  ctx.fillStyle = 'white';
-  ctx.font = '20px Arial';
-  ctx.fillText(`HP: ${player.health}`, 20, 30);
+  updateHUD();
 
-  requestAnimationFrame(gameLoop);
-}
-
-gameLoop();
-class Bullet {
-  constructor(x,y,targetX,targetY,speed=10){
-    this.x = x;
-    this.y = y;
-    this.size = 8;
-    this.speed = speed;
-    const angle = Math.atan2(targetY - y, targetX - x);
-    this.dx = Math.cos(angle)*this.speed;
-    this.dy = Math.sin(angle)*this.speed;
-    this.color = 'yellow';
-  }
-  // reszta jak było
-}
-const shop = document.getElementById('shop');
-const buyWeapon1Btn = document.getElementById('buyWeapon1');
-const buyWeapon2Btn = document.getElementById('buyWeapon2');
-
-buyWeapon1Btn.onclick = () => {
-  if(player.score >= 100 && player.weaponLevel < 2){
-    player.score -= 100;
-    player.weaponLevel = 2;
-    alert('Kupiono Broń 2!');
-  } else {
-    alert('Nie masz wystarczająco monet lub już posiadasz tę broń!');
-  }
-};
-
-buyWeapon2Btn.onclick = () => {
-  if(player.score >= 250 && player.weaponLevel < 3){
-    player.score -= 250;
-    player.weaponLevel = 3;
-    alert('Kupiono Broń 3!');
-  } else {
-    alert('Nie masz wystarczająco monet lub już posiadasz tę broń!');
-  }
-};
-function updateHUD(){
-  hud.innerHTML = `HP: ${player.health} &nbsp;&nbsp; Monety: ${player.score} &nbsp;&nbsp; Level: ${player.level} &nbsp;&nbsp; Broń: ${player.weaponLevel}`;
-}
+  spawnTimer--;
+  if(spawnTimer <= 0 && !bossActive){
+    if(player.score > 0 && player.score % 50 === 0){
+      spawnBoss(player.level);
+      player.level++;
+      spawnTimer = 600;
+    } else {
+      spawnEnemy(player.level);
+      spawnTimer =
