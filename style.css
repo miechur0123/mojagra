@@ -1,0 +1,16 @@
+body {
+  background: #1e1e2f; /* ciemne, ale kolorowe */
+  font-family: 'Press Start 2P', cursive; /* pixelowy font z Google Fonts */
+  color: white;
+  margin: 0; overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+
+canvas {
+  image-rendering: pixelated; /* żeby piksele były ostre */
+  background: #0d0d14;
+  border: 4px solid #FFD700;
+}
