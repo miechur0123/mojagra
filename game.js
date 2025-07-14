@@ -4,6 +4,10 @@ const ctx = canvas.getContext('2d');
 const hud = document.getElementById('hud');
 const buyWeapon1Btn = document.getElementById('buyWeapon1');
 const buyWeapon2Btn = document.getElementById('buyWeapon2');
+const weaponSelectDiv = document.getElementById('weaponSelect');
+const weapon1Btn = document.getElementById('weapon1');
+const weapon2Btn = document.getElementById('weapon2');
+const weapon3Btn = document.getElementById('weapon3');
 
 const WIDTH = canvas.width;
 const HEIGHT = canvas.height;
@@ -112,6 +116,7 @@ let mouseX = 0;
 let mouseY = 0;
 let spawnTimer = 0;
 let bossActive = false;
+let gameStarted = false;
 
 function spawnEnemy(level){
   let x, y;
@@ -167,6 +172,8 @@ function collidesRect(x1,y1,w1,h1,x2,y2,w2,h2){
 }
 
 function gameLoop(){
+  if(!gameStarted) return;
+
   ctx.clearRect(0, 0, WIDTH, HEIGHT);
 
   player.move(keys);
@@ -186,4 +193,4 @@ function gameLoop(){
       spawnTimer = 600;
     } else {
       spawnEnemy(player.level);
-      spawnTimer =
+      spawn
