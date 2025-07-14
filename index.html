@@ -2,7 +2,7 @@
 <html lang="pl">
 <head>
 <meta charset="UTF-8" />
-<title>BroTato Lite</title>
+<title>BroTato Lite z wyborem broni</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
   body {
@@ -50,9 +50,27 @@
     background: #FFD700;
     color: black;
   }
+  #weaponSelect {
+    position:fixed; top:50%; left:50%; transform: translate(-50%, -50%);
+    background:#222; border: 3px solid #FFD700; padding: 20px; text-align:center; color:white; font-family:'Press Start 2P'; z-index: 10;
+  }
+  #weaponSelect button {
+    margin: 10px; padding:10px 20px; font-size:14px; cursor:pointer;
+  }
+  #weaponSelect button:hover {
+    background:#FFD700; color:black;
+  }
 </style>
 </head>
 <body>
+
+<div id="weaponSelect">
+  <h2>Wybierz broń startową</h2>
+  <button id="weapon1">Broń 1 - Podstawowa</button>
+  <button id="weapon2">Broń 2 - Podwójna</button>
+  <button id="weapon3">Broń 3 - Potrójna</button>
+</div>
+
 <div id="hud"></div>
 <div id="shop">
   <div>Sklep:</div>
@@ -60,6 +78,7 @@
   <button id="buyWeapon2">Kup Broń 3 (250 monet)</button>
 </div>
 <canvas id="game" width="800" height="600"></canvas>
+
 <script src="main.js"></script>
 </body>
 </html>
