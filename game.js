@@ -1,40 +1,27 @@
-const canvas = document.getElementById('game');
-const ctx = canvas.getContext('2d');
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
-
 class Player {
-  constructor() {
-    this.x = canvas.width/2;
-    this.y = canvas.height/2;
-    this.radius = 20;
-    this.speed = 5;
-    this.color = 'lime';
-    this.health = 100;
-    this.bullets = [];
+  constructor(){
+    // ... reszta pól
+    this.weaponLevel = 1;  // poziom broni
   }
-  draw() {
-    ctx.fillStyle = this.color;
-    ctx.beginPath();
-    ctx.arc(this.x, this.y, this.radius, 0, Math.PI*2);
-    ctx.fill();
+  shoot(targetX, targetY){
+    if(this.shootCooldown <= 0){
+      // W zależności od poziomu broni, różna ilość pocisków / prędkość
+      if(this.weaponLevel === 1){
+        this.bullets.push(new Bullet(this.x, this.y, targetX, targetY, 10));
+      } else if(this.weaponLevel === 2){
+        // np. 2 pociski z lekkim rozrzutem
+        this.bullets.push(new Bullet(this.x, this.y, targetX + 10, targetY, 12));
+        this.bullets.push(new Bullet(this.x, this.y, targetX - 10, targetY, 12));
+      } else if(this.weaponLevel >= 3){
+        // 3 pociski
+        this.bullets.push(new Bullet(this.x, this.y, targetX, targetY, 15));
+        this.bullets.push(new Bullet(this.x, this.y, targetX + 15, targetY + 5, 15));
+        this.bullets.push(new Bullet(this.x, this.y, targetX - 15, targetY - 5, 15));
+      }
+      this.shootCooldown = 15;
+    }
   }
-  move(keys) {
-    if(keys['w'] && this.y - this.radius > 0) this.y -= this.speed;
-    if(keys['s'] && this.y + this.radius < canvas.height) this.y += this.speed;
-    if(keys['a'] && this.x - this.radius > 0) this.x -= this.speed;
-    if(keys['d'] && this.x + this.radius < canvas.width) this.x += this.speed;
-  }
-  shoot(targetX, targetY) {
-    this.bullets.push(new Bullet(this.x, this.y, targetX, targetY));
-  }
-  update() {
-    this.draw();
-    this.bullets.forEach((b, i) => {
-      b.update();
-      if(b.outOfBounds()) this.bullets.splice(i,1);
-    });
-  }
+  // reszta metod bez zmian
 }
 
 class Bullet {
@@ -157,3 +144,42 @@ function gameLoop(){
 }
 
 gameLoop();
+class Bullet {
+  constructor(x,y,targetX,targetY,speed=10){
+    this.x = x;
+    this.y = y;
+    this.size = 8;
+    this.speed = speed;
+    const angle = Math.atan2(targetY - y, targetX - x);
+    this.dx = Math.cos(angle)*this.speed;
+    this.dy = Math.sin(angle)*this.speed;
+    this.color = 'yellow';
+  }
+  // reszta jak było
+}
+const shop = document.getElementById('shop');
+const buyWeapon1Btn = document.getElementById('buyWeapon1');
+const buyWeapon2Btn = document.getElementById('buyWeapon2');
+
+buyWeapon1Btn.onclick = () => {
+  if(player.score >= 100 && player.weaponLevel < 2){
+    player.score -= 100;
+    player.weaponLevel = 2;
+    alert('Kupiono Broń 2!');
+  } else {
+    alert('Nie masz wystarczająco monet lub już posiadasz tę broń!');
+  }
+};
+
+buyWeapon2Btn.onclick = () => {
+  if(player.score >= 250 && player.weaponLevel < 3){
+    player.score -= 250;
+    player.weaponLevel = 3;
+    alert('Kupiono Broń 3!');
+  } else {
+    alert('Nie masz wystarczająco monet lub już posiadasz tę broń!');
+  }
+};
+function updateHUD(){
+  hud.innerHTML = `HP: ${player.health} &nbsp;&nbsp; Monety: ${player.score} &nbsp;&nbsp; Level: ${player.level} &nbsp;&nbsp; Broń: ${player.weaponLevel}`;
+}
